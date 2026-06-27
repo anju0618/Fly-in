@@ -18,6 +18,9 @@ UI
 
 ## Resorces
 
+### AI Usage
+グーグルスタイルのdocstingの出力
+
 ## Algorism
 
 ## Visualization
