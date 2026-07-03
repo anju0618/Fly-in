@@ -26,6 +26,17 @@ def main() -> None:
 
         simulator.run(pathfinder)
 
+        """
+        if pathfinder.schedule:
+            from visualizer import Visualizer
+            total_turns = max(pathfinder.schedule.keys())
+
+            print("\n[Bonus] Launching Graphical "
+                  "Fleet Telemetry Visualizer...")
+            visualizer = Visualizer(map_data, pathfinder.schedule, total_turns)
+            visualizer.start()
+        """
+
     except Exception as e:
         print(f"Error during simulation: {e}", file=sys.stderr)
         sys.exit(1)
