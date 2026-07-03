@@ -176,7 +176,8 @@ class Pathfinder:
         else:
             import sys
             print(
-                "Error: Spatial graph is disconnected or end_hub is unreachable.",
+                "Error: Spatial graph is "
+                "disconnected or end_hub is unreachable.",
                 file=sys.stderr
             )
             sys.exit(1)

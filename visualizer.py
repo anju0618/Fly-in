@@ -58,14 +58,14 @@ class Visualizer:
         )
         self.btn_next.pack(side=tk.LEFT, padx=20, pady=10)
 
-        self.btn_auto = tk.Button(
+        self.btn_prev = tk.Button(
             self.control_frame,
-            text="Autoplay",
-            command=self.toggle_autoplay,
-            bg="#a6e3a1",
+            text="Prev Turn",
+            command=self.prev_turn,
+            bg="#f38ba8",
             fg="black",
         )
-        self.btn_auto.pack(side=tk.LEFT, padx=10, pady=10)
+        self.btn_prev.pack(side=tk.LEFT, padx=10, pady=10)
 
         self.lbl_status = tk.Label(
             self.control_frame,
@@ -124,7 +124,11 @@ class Visualizer:
         scale_y = (h - 2 * self.padding) / self.range_y
 
         pixel_x = self.padding + (zone.x - self.min_x) * scale_x
-        pixel_y = self.padding + (zone.y - self.min_y) * scale_y
+        if self.range_y == 1.0:
+            pixel_y = h / 2
+        else:
+            pixel_y = self.padding + (zone.y - self.min_y) * scale_y
+
         return pixel_x, pixel_y
 
     def refresh_view(self) -> None:
@@ -173,7 +177,7 @@ class Visualizer:
             is_dark = color_hex != "#45475a"
             text_color = "#11111b" if is_dark else "#cdd6f4"
             self.canvas.create_text(
-                cx, cy,
+                cx, cy - 35,
                 text=f"{name}{cap_str}",
                 fill=text_color,
                 font=("Helvetica", 9, "bold"),
@@ -224,34 +228,25 @@ class Visualizer:
         )
         self.refresh_view()
 
-    def _play_loop(self) -> None:
-        """Automated cyclical callback to progress rounds sequentially."""
-        if self.is_playing:
-            if self.current_turn < self.total_turns:
-                self.next_turn()
-                self.root.after(800, self._play_loop)
-            else:
-                self.is_playing = False
-                self.btn_auto.config(text="Autoplay")
+    def prev_turn(self) -> None:
+        """Reverts the simulation state to the previous turn."""
+        if self.current_turn <= 0:
+            return
+        self.current_turn -= 1
+        for i in range(1, self.map_data.nb_drones + 1):
+            self.drone_positions[i] = self.map_data.start_hub.name
 
-    def toggle_autoplay(self) -> None:
-        """Toggles the state of continuous simulation progression."""
-        if self.is_playing:
-            self.is_playing = False
-            self.btn_auto.config(text="Autoplay")
-        else:
-            if self.current_turn >= self.total_turns:
-                self.current_turn = 0
-                for i in range(1, self.map_data.nb_drones + 1):
-                    self.drone_positions[i] = self.map_data.start_hub.name
-                self.lbl_status.config(
-                    text=f"Turn: 0 / {self.total_turns}"
-                )
-                self.refresh_view()
+        # 2. current_turn までスケジュールを適用して進める
+        for t in range(1, self.current_turn + 1):
+            turn_moves = self.schedule.get(t, {})
+            for d_id, target_zone in turn_moves.items():
+                self.drone_positions[d_id] = target_zone
 
-            self.is_playing = True
-            self.btn_auto.config(text="Pause")
-            self._play_loop()
+        # 表示を更新
+        self.lbl_status.config(
+            text=f"Turn: {self.current_turn} / {self.total_turns}"
+        )
+        self.refresh_view()
 
     def start(self) -> None:
         """Starts the main blocking visual GUI thread window loop."""

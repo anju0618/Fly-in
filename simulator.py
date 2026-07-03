@@ -98,17 +98,36 @@ class Simulator:
         end_name = self.map_data.end_hub.name
         return all(d.current_zone == end_name for d in self.drones)
 
-    def run(self, pathfinder: Any) -> None:
-        """Runs the complete simulation loop until all drones reach the goal.
-
-        Args:
-            pathfinder: The routing algorithm instance used to compute moves.
-        """
+    def run(self, pathfinder: Any, show_capacity: bool = False) -> None:
         while not self.is_finished():
             moves = pathfinder.compute_moves(self)
-
             if moves:
                 turn_output = " ".join(f"D{d}-{z}" for d, z in moves.items())
                 print(turn_output)
-
             self.run_turn(moves)
+            if show_capacity:
+                print(f"--- Turn {self.current_turn - 1} Capacity Info ---")
+
+                counts: dict[str, int] = {}
+                for d in self.drones:
+                    counts[d.current_zone] = counts.get(d.current_zone, 0) + 1
+
+                for z_name, zone in self.map_data.zones.items():
+                    if z_name in (
+                        self.map_data.start_hub.name,
+                        self.map_data.end_hub.name
+                    ):
+                        continue
+
+                    c = counts.get(z_name, 0)
+                    print(f"Zone {z_name}: {c}/{zone.max_drones} drones")
+
+                for conn in self.map_data.connections:
+                    c_name = f"{conn.zone1}-{conn.zone2}"
+                    r_name = f"{conn.zone2}-{conn.zone1}"
+                    c_count = counts.get(c_name, 0) + counts.get(r_name, 0)
+                    m_cap = conn.max_link_capacity
+                    print(
+                        f"Connection {c_name}: "
+                        f"{c_count}/{m_cap} capacity used"
+                    )
