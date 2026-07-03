@@ -85,6 +85,7 @@ In strict adherence to the peer learning principles outlined in Chapter II, Gene
 1. Docstring Standardization: Automating repetitive Python PEP 257 Google-style docstring layouts for comprehensive code compliance verification.
 2. Linter Troubleshooting: Resolving complex static analyzer boundaries where global wildcards interacted incorrectly with sub-dependencies during automated testing (`make lint` vs virtual directories).
 3. Edge Case Parsing: Hardening structural parsing parameters to robustly handle complex character scenarios (e.g., text isolation anomalies like string tokens embedded inside zone descriptors).
+4. visualizer
 
 ---
 *This project has been created as part of the 42 curriculum by amakino.*
@@ -181,3 +182,4 @@ make fclean
 1. Docstringの標準化: PythonのPEP 257に準拠したGoogleスタイルのdocstringレイアウトを自動化し、コードの完全なコンプライアンスを検証.
 2. リンターのエラー回避: 自動検証時（`make lint`）に、グローバルワイルドカードが仮想環境内のサードパーティ製依存関係と誤って干渉する境界条件の解決.
 3. エッジケースのパース堅牢化: ゾーン記述子内に文字列トークンが埋め込まれた複雑な文字列（`trap_a1` などの `_t` 誤爆トラップ）を頑健に分離するための解析パラメーターの強化.
+4. visualizer
