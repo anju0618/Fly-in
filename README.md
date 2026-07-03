@@ -26,6 +26,27 @@ make run MAP=maps/easy/01_linear_path.txt
 ```
 *(Note: You can substitute the `MAP` variable with any valid map configuration file path).*
 
+### Example Input and Expected Output
+**Example Map Input (`maps/easy/03_basic_capacity.txt`):**
+```text
+nb_drones: 4
+start_hub: start [0, 0]
+hub: bottleneck [2, 0] (max_drones=2)
+hub: wide_area [4, 0] (max_drones=3)
+end_hub: goal [6, 0]
+```
+**Expected Simulation Output:**
+```text
+D3-bottleneck D4-bottleneck
+D1-bottleneck D2-bottleneck D3-wide_area D4-wide_area
+D1-wide_area D2-wide_area D3-goal D4-goal
+D1-goal D2-goal
+```
+
+connection: start-bottleneck
+connection: bottleneck-wide_area (max_link_capacity=2)
+connection: wide_area-goal
+
 ### Verification & Static Analysis
 To run full test suites for style guidelines conformance and strict typing safety validation:
 ```bash
@@ -118,6 +139,23 @@ make install
 make run MAP=maps/easy/01_linear_path.txt
 ```
 * 注意: `MAP` 変数には、任意の有効なマップ設定ファイルのパスを指定できます$.
+
+### 例
+**Example Map Input (`maps/easy/03_basic_capacity.txt`):**
+```text
+nb_drones: 4
+start_hub: start [0, 0]
+hub: bottleneck [2, 0] (max_drones=2)
+hub: wide_area [4, 0] (max_drones=3)
+end_hub: goal [6, 0]
+```
+**Expected Simulation Output:**
+```text
+D3-bottleneck D4-bottleneck
+D1-bottleneck D2-bottleneck D3-wide_area D4-wide_area
+D1-wide_area D2-wide_area D3-goal D4-goal
+D1-goal D2-goal
+```
 
 ### lint
 コーディング標準の遵守と厳格な型安全性の検証を一括で実行するには、以下のコマンドを使用します:

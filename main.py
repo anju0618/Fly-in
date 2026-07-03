@@ -45,8 +45,8 @@ def main() -> None:
             total_turns = max(pathfinder.schedule.keys())
             for turn in range(1, total_turns + 1):
                 print(f"\n[Turn {turn} Summary]")
-                zone_counts = {name: 0 for name in map_data.zones}
-                conn_counts = {}
+                zone_counts: dict[str, int] = {name: 0 for name in map_data.zones}
+                conn_counts: dict[str, int] = {}
                 for u in map_data.graph:
                     for v, conn in map_data.graph[u]:
                         conn_counts[f"{u}-{v}"] = 0

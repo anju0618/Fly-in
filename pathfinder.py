@@ -160,7 +160,8 @@ class Pathfinder:
         end_name = self.map_data.end_hub.name
 
         total_turns = 1
-        while True:
+        max_limit = 200
+        while total_turns <= max_limit:
             self.build_network(total_turns)
 
             self._add_edge("SUPER_SRC", f"{start_name}_t0_in", nb_drones)
@@ -172,6 +173,13 @@ class Pathfinder:
             if flow == nb_drones:
                 break
             total_turns += 1
+        else:
+            import sys
+            print(
+                "Error: Spatial graph is disconnected or end_hub is unreachable.",
+                file=sys.stderr
+            )
+            sys.exit(1)
 
         flow_graph: dict[str, dict[str, int]] = {}
         for u in self.residual_graph:
