@@ -119,7 +119,7 @@ make run MAP=maps/easy/01_linear_path.txt
 ```
 * 注意: `MAP` 変数には、任意の有効なマップ設定ファイルのパスを指定できます$.
 
-### コード規約・静的型チェックの検証 $Verification \& Static Analysis$
+### lint
 コーディング標準の遵守と厳格な型安全性の検証を一括で実行するには、以下のコマンドを使用します:
 ```bash
 make lint
