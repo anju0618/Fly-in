@@ -1,21 +1,35 @@
 #!/usr/bin/env python3
+"""Simulation engine module for navigating drones through network zones.
+
+This module handles the state representation
+of the drone fleet,turn mechanics,
+and strict validation of movement and capacity constraints.
+"""
 
 from drone import Drone
 from map_data import MapData
+from typing import Any
 
 
 class InvalidMoveError(Exception):
-    """ドローンが繋がっていないゾーンに移動しようとしたときのエラー"""
+    """Exception raised when a drone attempts an invalid movement."""
     pass
 
 
 class CapacityExceededError(Exception):
-    """max_dronesを超えて進入しようとしたときのエラー"""
+    """Exception raised when a zone's max_drones capacity is exceeded."""
     pass
 
 
 class Simulator:
+    """Manages the state and turn execution of the drone simulation."""
+
     def __init__(self, map_data: MapData) -> None:
+        """Initializes the simulation state with parsed map configuration.
+
+        Args:
+            map_data: The complete configuration data of the parsed map.
+        """
         self.map_data = map_data
         self.drones: list[Drone] = []
         self.zone_occupancy = {
@@ -26,40 +40,70 @@ class Simulator:
         start_name = self.map_data.start_hub.name
         self.zone_occupancy[start_name] = self.map_data.nb_drones
         for i in range(1, self.map_data.nb_drones + 1):
-            drone = Drone(
-                    i,
-                    self.map_data.start_hub.name
-                    )
+            drone = Drone(i, self.map_data.start_hub.name)
             self.drones.append(drone)
 
     def run_turn(self, moves: dict[int, str]) -> None:
+        """Executes a single simulation turn with the provided movements.
 
+        Args:
+            moves: A dictionary mapping drone IDs to their target locations.
+
+        Raises:
+            CapacityExceededError: If a target zone exceeds its max capacity.
+        """
         self.current_turn += 1
 
         for drone_id, target_zone in moves.items():
             current_zone = self.drones[drone_id - 1].current_zone
-            self.zone_occupancy[current_zone] -= 1
+            if "-" not in current_zone:
+                self.zone_occupancy[current_zone] -= 1
 
         for drone_id, target_zone in moves.items():
             current_zone = self.drones[drone_id - 1].current_zone
+
+            if "-" in current_zone:
+                self.zone_occupancy[target_zone] += 1
+                self.drones[drone_id - 1].current_zone = target_zone
+                continue
+
+            if "-" in target_zone:
+                self.drones[drone_id - 1].current_zone = target_zone
+                continue
+
             valid_destinations = [
                 name for name, _ in self.map_data.graph[current_zone]
-                ]
+            ]
 
             if target_zone in valid_destinations:
+                is_special = target_zone in (
+                    self.map_data.start_hub.name,
+                    self.map_data.end_hub.name,
+                )
                 max_drones = self.map_data.zones[target_zone].max_drones
-                if self.zone_occupancy[target_zone] >= max_drones:
-                    raise CapacityExceededError(f"{target_zone} is full.")
+                has_space = self.zone_occupancy[target_zone] < max_drones
 
+                if not is_special and not has_space:
+                    raise CapacityExceededError(f"{target_zone} is full.")
                 else:
                     self.zone_occupancy[target_zone] += 1
                     self.drones[drone_id - 1].current_zone = target_zone
 
     def is_finished(self) -> bool:
-        goal_name = self.map_data.goal_hub.name
-        return all(d.current_zone == goal_name for d in self.drones)
+        """Checks whether all drones have successfully arrived at the end hub.
 
-    def run(self) -> None:
+        Returns:
+            True if all drones are delivered, False otherwise.
+        """
+        end_name = self.map_data.end_hub.name
+        return all(d.current_zone == end_name for d in self.drones)
+
+    def run(self, pathfinder: Any) -> None:
+        """Runs the complete simulation loop until all drones reach the goal.
+
+        Args:
+            pathfinder: The routing algorithm instance used to compute moves.
+        """
         while not self.is_finished():
             moves = pathfinder.compute_moves(self)
 
