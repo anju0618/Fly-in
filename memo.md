@@ -421,3 +421,225 @@ def compute_moves(self, simulator: Any) -> dict[int, str]:
 * **シミュレーターへの移動指示**: シミュレーター（simulator.py）から現在のターン数を尋ねられた際、事前計算してあるスケジュール帳（self.schedule）から、そのターンに行うべき全ドローンの移動命令の辞書を即座に引き出して渡します
 
 
+# simulator.py
+```py
+from drone import Drone
+from map_data import MapData
+from typing import Any
+
+class InvalidMoveError(Exception):
+    pass
+
+class CapacityExceededError(Exception):
+    pass
+```
+いつもの
+
+```py
+class Simulator:
+    def __init__(self, map_data: MapData) -> None:
+        self.map_data = map_data
+        self.drones: list[Drone] = []
+        self.zone_occupancy = {
+                name: 0 for name in self.map_data.zones
+        }
+        self.current_turn: int = 1
+
+        start_name = self.map_data.start_hub.name
+        self.zone_occupancy[start_name] = self.map_data.nb_drones
+        for i in range(1, self.map_data.nb_drones + 1):
+            drone = Drone(i, self.map_data.start_hub.name)
+            self.drones.append(drone)
+```
+初期状態のセットアップ:`zone_occupancy`: 各ゾーンに「今何機のドローンがいるか」をリアルタイムに記録するカウンターの辞書。
+* **初期配置**: シミュレーション開始時、すべてのドローン（1〜nb_drones）を一斉に生成し、例外ルールである「容量無制限の start_hub」に全機を配置。
+
+```py
+def run_turn(self, moves: dict[int, str]) -> None:
+        self.current_turn += 1
+
+        for drone_id, target_zone in moves.items():
+            current_zone = self.drones[drone_id - 1].current_zone
+            if "-" not in current_zone:
+                self.zone_occupancy[current_zone] -= 1
+```
+
+* **ターンの進行と容量の先行解放（ファーストパス）**:課題の重要なルールである「ゾーンから出ていくドローンは、そのターンのうちに即座に容量を解放する」を忠実に再現。
+* 移動する全ドローンを先になめ、現在地が空中（- を含むコネクション上）でなければ、元のゾーンのカウントをマイナスしてスペースを空ける。
+
+```py
+for drone_id, target_zone in moves.items():
+            current_zone = self.drones[drone_id - 1].current_zone
+
+            if "-" in current_zone:
+                self.zone_occupancy[target_zone] += 1
+                self.drones[drone_id - 1].current_zone = target_zone
+                continue
+
+            if "-" in target_zone:
+                self.drones[drone_id - 1].current_zone = target_zone
+                continue
+```
+* **特殊移動（空中・制限ゾーン）の検証（セカンドパス：前半）**:
+* **着陸処理**: 現在地が空中（- あり）だったドローンが通常の目的地へ着陸する場合、目的地のゾーンカウントを増やして現在地を上書き。
+* **離陸処理**: 目的地が空中（制限ゾーンへ向かう2ターン移動の1ターン目）の場合、ドローンの現在地をコネクション名に書き換える（まだ目的地のゾーンには入っていないため、ゾーンカウントは増やさない）。
+
+```py
+valid_destinations = [
+                name for name, _ in self.map_data.graph[current_zone]
+            ]
+
+            if target_zone in valid_destinations:
+                is_special = target_zone in (
+                    self.map_data.start_hub.name,
+                    self.map_data.end_hub.name,
+                )
+                max_drones = self.map_data.zones[target_zone].max_drones
+                has_space = self.zone_occupancy[target_zone] < max_drones
+
+                if not is_special and not has_space:
+                    raise CapacityExceededError(f"{target_zone} is full.")
+                else:
+                    self.zone_occupancy[target_zone] += 1
+                    self.drones[drone_id - 1].current_zone = target_zone
+```
+* **通常移動の厳格な検証（セカンドパス：後半）**:地理的に移動可能な隣接ゾーンであるかを隣接リストから検証。
+移動先が start_hub または end_hub（これらは容量無制限の例外エリア）でない場合、現在の滞在数が max_drones を超えないかを厳しくチェック
+もし容量オーバーが発生していれば、即座に CapacityExceededError を発生させてシミュレーションを中断（安全の確保）
+
+```py
+def is_finished(self) -> bool:
+        end_name = self.map_data.end_hub.name
+        return all(d.current_zone == end_name for d in self.drones)
+```
+* 終了判定: すべてのドローン（all()）の現在地が end_hub になった瞬間、シミュレーション完了（True）と判定。
+
+```py
+def run(self, pathfinder: Any, show_capacity: bool = False) -> None:
+        while not self.is_finished():
+            moves = pathfinder.compute_moves(self)
+            if moves:
+                turn_output = " ".join(f"D{d}-{z}" for d, z in moves.items())
+                print(turn_output)
+            self.run_turn(moves)
+            if show_capacity:
+                # --- Turn Capacity Info の出力ロジック ---
+```
+
+## シミュレーションの実行ループと標準出力:
+* pathfinder からそのターンの全移動コマンド（moves）を取得し、課題指定の D1-zoneA D2-zoneB というスペース区切りのフォーマットで標準出力へ一括出力（動かなかったドローンは自動で除外される）
+* 移動を実行（run_turn）した後、--capacity-info フラグ（show_capacity）が有効であれば、各ゾーンと各コネクションの現在の利用率をリアルタイムで詳細に出力する
+
+# main.py
+```py
+def main() -> None:
+    if len(sys.argv) < 2:
+        print("Usage: python3 main.py <map_file_path>")
+        sys.exit(1)
+
+    file_path = sys.argv[1]
+```
+引数チェック
+```py
+try:
+        parser = MapParser(file_path)
+        map_data = parser.parse()
+
+        simulator = Simulator(map_data)
+        pathfinder = Pathfinder(map_data)
+
+        simulator.run(pathfinder, show_capacity="--capacity-info" in sys.argv)
+```
+
+# visualizer.py
+
+```py
+import math
+import tkinter as tk
+from typing import Any, Dict, List, Tuple
+```
+* **import math**:同一ゾーンにドローンが複数滞在した際、描画が重ならないように配置を分散させる三角関数の計算で使用します。
+* **import tkinter as tk**: Python標準のGUIツールキットであるTkinterフレームワークをインポートしています。
+
+```py
+def _calculate_bounds(self) -> None:
+        xs = [z.x for z in self.map_data.zones.values()]
+        ys = [z.y for z in self.map_data.zones.values()]
+
+        min_x = min(xs) if xs else 0
+        max_x = max(xs) if xs else 10
+        min_y = min(ys) if ys else 0
+        max_y = max(ys) if ys else 10
+
+        self.range_x = float(max_x - min_x if max_x != min_x else 1)
+        self.range_y = float(max_y - min_y if max_y != min_y else 1)
+        self.min_x = float(min_x)
+        self.min_y = float(min_y)
+```
+マップの境界値とスケールの動的計算: すべてのゾーンのX座標・Y座標の最大値と最小値を算出します。ウィンドウの解像度（1000x750）に合わせて、マップ全体のトポロジーを画面中央に綺麗に収めるためのスケーリング係数を事前計算します。
+
+```py
+def _get_coords(self, zone_name: str) -> Tuple[float, float]:
+        if "-" in zone_name:
+            u_name, v_name = zone_name.split("-", 1)
+            u_x, u_y = self._get_coords(u_name)
+            v_x, v_y = self._get_coords(v_name)
+            return (u_x + v_x) / 2, (u_y + v_y) / 2
+        ...
+        if self.range_y == 1.0:
+            pixel_y = h / 2
+        else:
+            pixel_y = self.padding + (zone.y - self.min_y) * scale_y
+```
+## 実座標からピクセル空間への変換ロジック:
+* 制限ゾーンへの移動中を表すコネクション名（A-B）が渡された場合、自動的にゾーンAとゾーンBの中間地点（航空機の中間座標）を計算して返却します。
+* 一直線マップ（エッジケース）の対策: すべてのゾーンのY座標がゼロ（range_y == 1.0）となる直線状のマップが入力された場合でも、ノードが画面最上部に張り付いて見えなくなるのを防ぐため、画面の垂直方向中央（h / 2）へ強制的に一列整列させるレイアウト補正を実装しています。
+
+```py
+def refresh_view(self) -> None:
+        # 1. 接続ラインの描画（省略）
+        # 2. ゾーン円の描画とメタデータカラーの反映
+            meta_color = (zone.colour or "").lower()
+            if meta_color == "green": color_hex = "#a6e3a1"
+            elif meta_color == "red": color_hex = "#f38ba8"
+            ...
+```
+## 画面のリアルタイム再レンダリング
+* キャンバス上の古い描画を一度全て削除（.delete("all")）した上で、最新の状態を再描画します
+* マップテキスト内で指定されたオプショナルなカラー属性（color=red など）の文字列を検知し、対応するカラーコードに変換してノードの円（oval）へ動的に適用します
+* start_hub は緑色、end_hub は黄色として最優先で固定色分けし、視認性を高めています。
+
+```py
+for z_name, drones in zone_clusters.items():
+            zx, zy = self._get_coords(z_name)
+            num_drones = len(drones)
+
+            for idx, d_id in enumerate(drones):
+                offset_r = 32 if num_drones > 1 else 0
+                angle = idx * (2 * math.pi / num_drones) if num_drones > 0 else 0.0
+                dx = zx + offset_r * math.cos(angle)
+                dy = zy + offset_r * math.sin(angle)
+```
+## ドローンの重なり防止（クラスター分散描画）:
+* 1つのゾーンに複数のドローンが同時滞在している（num_drones > 1）場合、ドローンの円が完全に真上に重なって見えなくなる現象を防止します。
+* 滞在しているドローンの数に応じて円周上の角度（angle）を均等に分割し、三角関数（cos / sin）を使って、中心ノードの周囲の軌道上に綺麗に分散（クラスター配置）させて描画する高度なUI工夫です
+
+```py
+def prev_turn(self) -> None:
+        if self.current_turn <= 0:
+            return
+        self.current_turn -= 1
+        for i in range(1, self.map_data.nb_drones + 1):
+            self.drone_positions[i] = self.map_data.start_hub.name
+
+        for t in range(1, self.current_turn + 1):
+            turn_moves = self.schedule.get(t, {})
+            for d_id, target_zone in turn_moves.items():
+                self.drone_positions[d_id] = target_zone
+```
+## 安全な「ターン巻き戻し」メカニズム（リプレイ方式）:
+* 42のレビュー中に「1ターン前の渋滞状況をもう一度見せて」と言われた際に対応する機能です。
+* 各移動の逆演算ロジックを無理に書くと、制限ゾーンなどの複雑な状態の巻き戻しでバグが発生しやすくなります。
+* このシステムでは、ボタンが押されると全てのドローンを一度スタート地点にリセットし、第1ターンから目的のターン（current_turn）までの移動スケジュールを一瞬で高速に再適用（リプレイ）する手法を採用しています。これにより、バグを100%発生させずに、安全かつ確実に過去の任意の盤面を復元できます。  
+
+
