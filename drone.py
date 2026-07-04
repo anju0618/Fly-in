@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Module defining the Drone class and its state manegement.
+Module defining the Drone class and its state management.
 """
 
 from typing import Optional

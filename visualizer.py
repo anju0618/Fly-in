@@ -148,7 +148,7 @@ class Visualizer:
             r = self.node_radius
 
             color_hex = "#45475a"
-            meta_color = getattr(zone, "color", "").lower()
+            meta_color = (zone.colour or "").lower()
             if meta_color == "green":
                 color_hex = "#a6e3a1"
             elif meta_color == "red":
@@ -236,13 +236,11 @@ class Visualizer:
         for i in range(1, self.map_data.nb_drones + 1):
             self.drone_positions[i] = self.map_data.start_hub.name
 
-        # 2. current_turn までスケジュールを適用して進める
         for t in range(1, self.current_turn + 1):
             turn_moves = self.schedule.get(t, {})
             for d_id, target_zone in turn_moves.items():
                 self.drone_positions[d_id] = target_zone
 
-        # 表示を更新
         self.lbl_status.config(
             text=f"Turn: {self.current_turn} / {self.total_turns}"
         )
