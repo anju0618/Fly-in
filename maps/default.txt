@@ -1,6 +1,0 @@
-nb_drones: 2
-start_hub: start 0 0
-end_hub: goal 10 10
-hub: roof1 5 5
-connection: start-roof1
-connection: roof1-goal

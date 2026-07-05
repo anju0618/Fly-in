@@ -101,6 +101,18 @@ Our Time-Expanded Flow engine consistently demolishes the official performance o
 
 [github.com/Diogo-Serra/Fly-in](https://github.com/Diogo-Serra/Fly-in)
 
+[【Matplotlib入門⑧】3次元プロット入門（3D折れ線・散布図・曲面）](https://zenn.dev/haruhiro1020/articles/b9e73c18cd63c2)
+
+[Pythonで3Dの「動く立方体」を作る | 外部モジュールなし | python | tkinter |](https://note.com/__init__4335/n/nab258ff741a0)
+
+[python tkinterGUIへの埋め込みmatplotlibで3Dフィギュアをプロット](https://qiita.com/taiko1/items/ed9becf5110829adb401)
+
+[エドモンズ・カープのアルゴリズム](https://ja.wikipedia.org/wiki/%E3%82%A8%E3%83%89%E3%83%A2%E3%83%B3%E3%82%BA%E3%83%BB%E3%82%AB%E3%83%BC%E3%83%97%E3%81%AE%E3%82%A2%E3%83%AB%E3%82%B4%E3%83%AA%E3%82%BA%E3%83%A0)
+
+[matplotlib 入門](https://qiita.com/Shmwa2/items/8f0d337c0bfb75a8716f)
+
+[最大フロー問題](https://ja.wikipedia.org/wiki/%E6%9C%80%E5%A4%A7%E3%83%95%E3%83%AD%E3%83%BC%E5%95%8F%E9%A1%8C)
+
 ### Artificial Intelligence Declaration
 In strict adherence to the peer learning principles outlined in Chapter II, Generative AI assistance was utilized transparently for the following scoped engineering workflows:
 1. Docstring Standardization: Automating repetitive Python PEP 257 Google-style docstring layouts for comprehensive code compliance verification.
@@ -215,6 +227,17 @@ make fclean
 
 [github.com/Diogo-Serra/Fly-in](https://github.com/Diogo-Serra/Fly-in)
 
+[【Matplotlib入門⑧】3次元プロット入門（3D折れ線・散布図・曲面）](https://zenn.dev/haruhiro1020/articles/b9e73c18cd63c2)
+
+[Pythonで3Dの「動く立方体」を作る | 外部モジュールなし | python | tkinter |](https://note.com/__init__4335/n/nab258ff741a0)
+
+[python tkinterGUIへの埋め込みmatplotlibで3Dフィギュアをプロット](https://qiita.com/taiko1/items/ed9becf5110829adb401)
+
+[エドモンズ・カープのアルゴリズム](https://ja.wikipedia.org/wiki/%E3%82%A8%E3%83%89%E3%83%A2%E3%83%B3%E3%82%BA%E3%83%BB%E3%82%AB%E3%83%BC%E3%83%97%E3%81%AE%E3%82%A2%E3%83%AB%E3%82%B4%E3%83%AA%E3%82%BA%E3%83%A0)
+
+[離散最適化基礎論 (第5回) 最大流問題：Edmonds-Karpのアルゴリズム 2023年11月7日](https://www.youtube.com/watch?v=q09kUcJrY00)
+
+[matplotlib 入門](https://qiita.com/Shmwa2/items/8f0d337c0bfb75a8716f)
 
 ###　AIの利用
 1. Docstringの標準化: PythonのPEP 257に準拠したGoogleスタイルのdocstringレイアウトを自動化し、コードの完全なコンプライアンスを検証.

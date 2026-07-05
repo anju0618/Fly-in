@@ -25,15 +25,17 @@ def main() -> None:
         pathfinder = Pathfinder(map_data)
 
         simulator.run(pathfinder, show_capacity="--capacity-info" in sys.argv)
+        total_turns = (max(pathfinder.schedule.keys())
+                       if pathfinder.schedule else 0)
 
-        if pathfinder.schedule:
-            from visualizer import Visualizer
-            total_turns = max(pathfinder.schedule.keys())
-
-            print("\n[Bonus] Launching Graphical "
-                  "Fleet Telemetry Visualizer...")
-            visualizer = Visualizer(map_data, pathfinder.schedule, total_turns)
-            visualizer.start()
+        if "--3D" in sys.argv:
+            from visualizer_3D import Visualizer as Visualizer3D
+            vis3d = Visualizer3D(map_data, pathfinder.schedule, total_turns)
+            vis3d.start()
+        elif "--2D" in sys.argv:
+            from visualizer_2D import Visualizer as Visualizer2D
+            vis2d = Visualizer2D(map_data, pathfinder.schedule, total_turns)
+            vis2d.start()
 
     except Exception as e:
         print(f"Error during simulation: {e}", file=sys.stderr)

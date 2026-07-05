@@ -175,6 +175,11 @@ class MapParser:
             )
 
         zone1, zone2 = parts[0].strip(), parts[1].strip()
+        if zone1 == zone2:
+            raise ValueError(
+                f"Line {line_num}: A connection cannot link a zone to itself "
+                f"('{zone1}')."
+            )
 
         if zone1 not in self.zones or zone2 not in self.zones:
             raise ValueError(
@@ -227,6 +232,15 @@ class MapParser:
         main_content = (line[:start_idx] + line[end_idx + 1:]).strip()
 
         metadata_dict: dict[str, str] = {}
+        allowed_keys = {
+                "zone",
+                "color",
+                "colour",
+                "max_drones",
+                "max_link_capacity"
+                }
+        seen_keys: set[str] = set()
+
         if metadata_content:
             items = metadata_content.split()
             for item in items:
@@ -234,6 +248,19 @@ class MapParser:
                     raise ValueError(f"Invalid metadata format: '{item}'")
 
                 key, value = item.split("=", 1)
-                metadata_dict[key.strip()] = value.strip()
+                key_stripped = key.strip()
+
+                if key_stripped not in allowed_keys:
+                    raise ValueError(f"Unsupported metadata "
+                                     f"key found: '{key_stripped}'")
+                normalized_key = ("color" if key_stripped
+                                  in ("color", "colour") else key_stripped)
+
+                if normalized_key in seen_keys:
+                    raise ValueError(f"Duplicate metadata key "
+                                     f"detected: '{key_stripped}'")
+
+                seen_keys.add(normalized_key)
+                metadata_dict[key_stripped] = value.strip()
 
         return main_content, metadata_dict

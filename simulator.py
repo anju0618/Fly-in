@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Simulation engine module for navigating drones through network zones.
 
-This module handles the state representation
-of the drone fleet,turn mechanics,
+This module handles the state representation of
+the drone fleet, turn mechanics,
 and strict validation of movement and capacity constraints.
 """
 
@@ -17,7 +17,7 @@ class InvalidMoveError(Exception):
 
 
 class CapacityExceededError(Exception):
-    """Exception raised when a zone's max_drones capacity is exceeded."""
+    """Exception raised when a zone or connection capacity is exceeded."""
     pass
 
 
@@ -33,9 +33,13 @@ class Simulator:
         self.map_data = map_data
         self.drones: list[Drone] = []
         self.zone_occupancy = {
-                name: 0 for name in self.map_data.zones
+            name: 0 for name in self.map_data.zones
         }
         self.current_turn: int = 1
+        self.link_capacities = {}
+        for conn in self.map_data.connections:
+            pair = tuple(sorted([conn.zone1, conn.zone2]))
+            self.link_capacities[pair] = conn.max_link_capacity
 
         start_name = self.map_data.start_hub.name
         self.zone_occupancy[start_name] = self.map_data.nb_drones
@@ -50,10 +54,33 @@ class Simulator:
             moves: A dictionary mapping drone IDs to their target locations.
 
         Raises:
-            CapacityExceededError: If a target zone exceeds its max capacity.
+            CapacityExceededError: If a zone or connection
+                                    exceeds max capacity.
         """
         self.current_turn += 1
 
+        connection_usage: dict[tuple[str, str], int] = {}
+        for drone_id, target_zone in moves.items():
+            current_zone = self.drones[drone_id - 1].current_zone
+
+            u, v = None, None
+            if "-" in target_zone:
+                u, v = target_zone.split("-", 1)
+            elif "-" not in current_zone:  # 通常または優先ゾーンへの移動
+                u, v = current_zone, target_zone
+
+            if u and v:
+                pair = (min(u, v), max(u, v))
+                if pair in self.link_capacities:
+                    connection_usage[pair] = connection_usage.get(pair, 0) + 1
+                    if connection_usage[pair] > self.link_capacities[pair]:
+                        raise CapacityExceededError(
+                            f"Connection {u}-{v} capacity exceeded "
+                            f"({connection_usage[pair]}/"
+                            f"{self.link_capacities[pair]})."
+                        )
+
+        # --- パス2: 出発するドローンの容量先行解放 ---
         for drone_id, target_zone in moves.items():
             current_zone = self.drones[drone_id - 1].current_zone
             if "-" not in current_zone:
@@ -84,16 +111,14 @@ class Simulator:
                 has_space = self.zone_occupancy[target_zone] < max_drones
 
                 if not is_special and not has_space:
-                    raise CapacityExceededError(f"{target_zone} is full.")
+                    raise CapacityExceededError(f"Zone {target_zone} is full.")
                 else:
                     self.zone_occupancy[target_zone] += 1
                     self.drones[drone_id - 1].current_zone = target_zone
 
     def is_finished(self) -> bool:
-        """Checks whether all drones have successfully arrived at the end hub.
-
-        Returns:
-            True if all drones are delivered, False otherwise.
+        """
+        Checks whether all drones have successfully arrived at the end hub.
         """
         end_name = self.map_data.end_hub.name
         return all(d.current_zone == end_name for d in self.drones)

@@ -104,16 +104,39 @@ class Pathfinder:
         """
         visited = {src}
         queue = deque([src])
+        priority_zones = {
+            name for name, zone in self.map_data.zones.items()
+            if zone.zone_type == "priority"
+        }
 
         while queue:
             u = queue.popleft()
+            priority_edges = []
+            normal_edges = []
+
             for v, cap in self.residual_graph[u].items():
-                if v not in visited and cap > 0:
-                    parent[v] = u
-                    if v == sink:
-                        return True
-                    visited.add(v)
-                    queue.append(v)
+
+                if v in visited or cap <= 0:
+                    continue
+
+                clean = v.replace("_in", "").replace("_out", "")
+                zone_name = (
+                    clean.rsplit("_t", 1)[0]
+                    if "_t" in clean else clean
+                )
+
+                if zone_name in priority_zones:
+                    priority_edges.append((v, cap))
+                else:
+                    normal_edges.append((v, cap))
+
+            for v, cap in priority_edges + normal_edges:
+                parent[v] = u
+                if v == sink:
+                    return True
+                visited.add(v)
+                queue.append(v)
+
         return False
 
     def edmonds_karp(self, src: str, sink: str) -> int:
@@ -195,11 +218,32 @@ class Pathfinder:
             while curr_zone != end_name:
                 out_node = f"{curr_zone}_t{t}_out"
                 next_node = ""
+
                 if out_node in flow_graph:
-                    for nxt, f in flow_graph[out_node].items():
+
+                    def get_priority(item: tuple[str, int]) -> int:
+                        nxt_node, _ = item
+                        clean_nxt = nxt_node.replace("_in", "")
+                        clean_nxt = clean_nxt.replace("_out", "")
+                        if "_t" in clean_nxt:
+                            z_name = clean_nxt.rsplit("_t", 1)[0]
+                        else:
+                            z_name = clean_nxt
+
+                        zone_obj = self.map_data.zones.get(z_name)
+                        return 0 if (zone_obj and
+                                     zone_obj.zone_type == "priority") else 1
+
+                    sorted_edges = sorted(
+                        flow_graph[out_node].items(),
+                        key=get_priority
+                        )
+
+                    for nxt, f in sorted_edges:
                         if f > 0:
                             next_node = nxt
                             break
+
                 if not next_node:
                     break
 

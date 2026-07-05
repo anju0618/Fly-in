@@ -11,7 +11,7 @@ MAP ?= maps/default.txt
 
 install:
 	$(SYSTEM_PYTHON) -m venv $(VENV)
-	$(VENV)/bin/pip install flake8 mypy
+	$(VENV)/bin/pip install flake8 mypy matplotlib
 
 run:
 	$(PYTHON) $(MAIN_SCRIPT) $(MAP)
