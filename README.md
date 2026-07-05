@@ -156,10 +156,10 @@ make run MAP=maps/easy/01_linear_path.txt
 **Example Map Input (`maps/easy/03_basic_capacity.txt`):**
 ```text
 nb_drones: 4
-start_hub: start [0, 0]
-hub: bottleneck [2, 0] (max_drones=2)
-hub: wide_area [4, 0] (max_drones=3)
-end_hub: goal [6, 0]
+start_hub: start 0, 0
+hub: bottleneck 2, 0 [max_drones=2]
+hub: wide_area 4, 0 [max_drones=3]
+end_hub: goal 6, 0
 ```
 **Expected Simulation Output:**
 ```text

@@ -183,7 +183,10 @@ class Pathfinder:
         end_name = self.map_data.end_hub.name
 
         total_turns = 1
-        max_limit = 200
+        node_count = len(self.map_data.zones)
+        dynamic_limit = (node_count * 3) + (nb_drones * 5)
+        max_limit = max(200, dynamic_limit)
+
         while total_turns <= max_limit:
             self.build_network(total_turns)
 

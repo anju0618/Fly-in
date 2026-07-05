@@ -37,6 +37,9 @@ def main() -> None:
             vis2d = Visualizer2D(map_data, pathfinder.schedule, total_turns)
             vis2d.start()
 
+    except KeyboardInterrupt:
+        print("\nSimulation interrupted by user. Exiting...", file=sys.stderr)
+        sys.exit(130)
     except Exception as e:
         print(f"Error during simulation: {e}", file=sys.stderr)
         sys.exit(1)
