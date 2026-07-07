@@ -46,4 +46,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nCtrl + c 触るな", file=sys.stderr)
+    except Exception as e:
+        print(f"\nError: {e}", file=sys.stderr)
