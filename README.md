@@ -12,6 +12,7 @@ This project utilizes a Python virtual environment (`venv`) managed seamlessly v
 ### Prerequisites
 * Python 3.10 or later
 * `make` utility
+* (Optional for GUI) `tkinter` system package (e.g., `sudo apt install python3-tk` on Debian/Ubuntu)
 
 ### Setup and Installation
 To automatically initialize the isolated virtual environment and install standard linter tools (`flake8`, `mypy`):
@@ -21,10 +22,15 @@ make install
 
 ### Execution
 To execute the simulation routing with a map file:
-```bash
-make run MAP=maps/easy/01_linear_path.txt
-```
-*(Note: You can substitute the `MAP` variable with any valid map configuration file path).*
+`make run MAP=maps/easy/01_linear_path.txt`
+
+You can also run the program directly with python to use additional flags:
+`python3 main.py <map_file_path> [options]`
+
+**Available Options:**
+*   `--2D`: Launches the ultra-fast 2D fleet telemetry visualizer (Tkinter).
+*   `--3D`: Launches the 3D spatial map canvas visualizer (Matplotlib).
+*   `--capacity-info`: Displays turn-by-turn detailed network capacity usage (Zone and Connection occupancy). *Note: This feature was proactively implemented to demonstrate dynamic state validation.*
 
 ### Example Input and Expected Output
 **Example Map Input (`maps/easy/03_basic_capacity.txt`):**
@@ -567,4 +573,61 @@ A* (A-star) やダイクストラ法のような単一エージェント向け�
 これによって、「ドローン1番は、0ターン目に部屋A、1ターン目に部屋B、2ターン目にゴール...」という具体的な動きが割り出され、課題指定の D1-roomA D2-roomB という美しいテキスト形式でターミナルに出力されます。
 
 制限ゾーンを飛行中のドローンに対しても、中間のターンで D1-roomA-roomB（飛行中）という状態が自動的に計算され、完璧なログが生成されます。
+
+```text
+===============================================================
+▼ 図解1：時空間ネットワーク（Time-Expanded Network）の基本
+===============================================================
+ドローン(D1)が、スタート(Zone A)からゴール(Zone B)へ向かうシンプルな例です。
+時間を「縦軸」に取ることで、未来の移動予定がすべて「1つの地図」になります。
+斜めの矢印が「移動」、真下の矢印が「待機」を表します。
+
+[時間軸]       [ Zone A ]                           [ Zone B ]
+
+ t = 0         ( D1 )                                (    )
+                 │                                     │
+            待機  │     移動 ──────────────┐       待機  │
+                 ▼                        ▼            ▼
+ t = 1         (    )                   ( D1 )         │
+                 │                        │            │
+            待機  │     移動 ──────┐         │ 待機       │
+                 ▼                ▼       ▼            ▼
+ t = 2         (    )                   ( D1 ) 🎉ゴール到達！
+                 │                        │ (以後、待機し続ける)
+                 ▼                        ▼
+
+
+===============================================================
+▼ 図解2：制限ゾーン（2ターン移動）へのフライト
+===============================================================
+「到着に2ターンかかる」というルールも、矢印の引き方を変えるだけで
+自動的に再現されます（途中で待機することが物理的に不可能になります）。
+
+[時間軸]       [ Start ]                         [ Restricted Zone ]
+
+ t = 0         ( D1 ) 
+                 │    移動 ──────────┐
+ t = 1         (    )                │ (空中・フライト中)
+                 │                   │
+ t = 2         (    )                ▼
+                 │                 ( D1 ) 🎉2ターン後に到着！
+                 ▼                   ▼
+
+
+===============================================================
+▼ 図解3：キャパシティ制限の仕組み（ノード分割）
+===============================================================
+「1つの部屋には max_drones 台しか入れない」という物理ルールを、
+グラフの「水道管の太さ（容量）」に変換する魔法です。
+
+【物理ルール】                       【アルゴリズム内部のグラフ構造】
+
+                                     ( 入口 )         ( 出口 )
+                                   ┌────────┐       ┌────────┐
+「Zone Aの定員は2台」       ▶       │ A_in   ├───────►│ A_out  │
+                                   └────────┘   ▲   └────────┘
+                                                │
+                                  ここの矢印の太さ(容量)を「2」に設定する！
+                                  ⇒ 物理的に3台以上は絶対に通過できなくなる。
+```
 
